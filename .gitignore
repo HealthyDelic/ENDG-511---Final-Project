@@ -1,0 +1,24 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+
+# Data -- too large for GitHub
+data/
+
+# Project docs
+README.md
+requirements.txt
+
+# Checkpoints and results can be large -- uncomment to exclude if needed
+# checkpoints/
+# results/
+
+# Editor / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
