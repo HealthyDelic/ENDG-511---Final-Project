@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint_dir", type=str, default="checkpoints")
     parser.add_argument("--results_dir", type=str, default="results")
 
-    # What experiment are we running?
+    # What experiment are we running.
     parser.add_argument("--label_frac", type=float, required=True)   # fraction of training labels to use (e.g. 0.05 = 5%)
     parser.add_argument("--run_name", type=str, required=True)        # e.g. "SimCLR_finetune", "CNN_scratch"
     parser.add_argument("--pretrained_path", type=str, default=None)  # override auto-detected checkpoint path
@@ -79,13 +79,11 @@ def main() -> None:
     )
 
     # Grab only the requested fraction of labeled training data.
-    # This is the core of the semi-supervised evaluation -- e.g. 0.05 = 5% of labels.
     # A shared cache is used so all experiments at the same fraction see the same images.
     train_dataset = build_shared_train_subset(splits.train, args.label_frac, seed=args.seed)
 
     # Wrap each split in a DataLoader.
     # pin_memory speeds up CPU->GPU transfers when a GPU is available.
-    # persistent_workers keeps worker processes alive between epochs to avoid re-spawning overhead.
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -151,7 +149,7 @@ def main() -> None:
     )
 
     # Track the best checkpoint based on validation accuracy.
-    # We'll restore this at the end before running the final test evaluation.
+    # This will be restored at the end before running the final test evaluation.
     best_state = None
     best_val_acc = -1.0
     history: list[dict[str, float]] = []  # per-epoch log for saving to history.json
@@ -161,7 +159,6 @@ def main() -> None:
         # One full pass through the training data
         train_stats = train_classifier_epoch(model, train_loader, optimizer, criterion, device)
 
-        # Check how we're doing on the validation set -- no gradients needed here
         val_stats = evaluate_classifier(model, val_loader, criterion, device)
 
         total_train_time += train_stats["epoch_time_sec"]
@@ -197,8 +194,7 @@ def main() -> None:
         model.load_state_dict(best_state)
 
     # Run inference on the held-out test set.
-    # return_predictions=True gives us the raw labels and softmax probabilities needed for
-    # the confusion matrix and ROC curve. measure_runtime=True records per-sample latency.
+    # return_predictions = True gives us the raw labels and softmax probabilities needed for the confusion matrix and ROC curve. measure_runtime=True records per-sample latency.
     test_stats = evaluate_classifier(
         model,
         test_loader,
@@ -208,8 +204,7 @@ def main() -> None:
         measure_runtime=True,
     )
 
-    # Compute all the classification metrics: accuracy, precision, recall, F1, confusion matrix,
-    # and if we have class probabilities, the ROC curve and AUC as well.
+    # Compute all the classification metrics: accuracy, precision, recall, F1, confusion matrix, and if we have class probabilities, the ROC curve and AUC as well.
     summary = summarize_classification(
         y_true=test_stats["targets"],
         y_pred=test_stats["predictions"],
@@ -260,7 +255,7 @@ def main() -> None:
     # easier to read without loading the full PyTorch checkpoint
     with (output_dir / "history.json").open("w", encoding="utf-8") as handle:
         json.dump(history, handle, indent=2)
-        
+
     with (output_dir / "summary.json").open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
 
@@ -284,7 +279,6 @@ def main() -> None:
     print(f"saved_results={output_dir}")
 
     # Print the summary to the terminal, but strip out the raw ROC curve arrays --
-    # they're thousands of floats and make the output completely unreadable
     print_summary = {k: v for k, v in summary.items() if k != "roc_curve"}
     print(json.dumps(print_summary, indent=2))
 
